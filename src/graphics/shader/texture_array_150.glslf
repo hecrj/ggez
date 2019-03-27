@@ -1,7 +1,7 @@
 #version 150 core
 
-uniform sampler2D t_Texture;
-uniform int t_Layer;
+uniform sampler2DArray t_Texture_Array;
+flat in uint v_Layer;
 in vec2 v_Uv;
 in vec4 v_Color;
 out vec4 Target0;
@@ -11,5 +11,5 @@ layout (std140) uniform Globals {
 };
 
 void main() {
-    Target0 = texture(t_Texture, v_Uv) * v_Color;
+    Target0 = texture(t_Texture_Array, vec3(v_Uv, v_Layer)) * v_Color;
 }

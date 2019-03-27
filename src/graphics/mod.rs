@@ -47,6 +47,7 @@ mod types;
 use nalgebra as na;
 
 pub mod spritebatch;
+pub mod texture_array;
 
 pub use self::canvas::*;
 pub(crate) use self::context::*;
@@ -143,7 +144,7 @@ const QUAD_VERTS: [Vertex; 4] = [
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-gfx_defines!{
+gfx_defines! {
     /// Internal structure containing vertex data.
     vertex Vertex {
         pos: [f32; 2] = "a_Pos",
@@ -162,6 +163,7 @@ gfx_defines!{
         col3: [f32; 4] = "a_TCol3",
         col4: [f32; 4] = "a_TCol4",
         color: [f32; 4] = "a_Color",
+        layer: u32 = "t_Layer",
     }
 
     /// Internal structure containing global shader state.
@@ -175,13 +177,13 @@ gfx_defines!{
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         tex: gfx::TextureSampler<[f32; 4]> = "t_Texture",
+        tex_array: gfx::TextureSampler<[f32; 4]> = "t_Texture_Array",
         globals: gfx::ConstantBuffer<Globals> = "Globals",
         rect_instance_properties: gfx::InstanceBuffer<InstanceProperties> = (),
         out: gfx::RawRenderTarget =
           ("Target0", GraphicsContext::get_format(), gfx::state::ColorMask::all(), Some(gfx::preset::blend::ALPHA)),
     }
 }
-
 
 impl fmt::Display for InstanceProperties {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -191,7 +193,11 @@ impl fmt::Display for InstanceProperties {
         matrix_vec.extend(&self.col3);
         matrix_vec.extend(&self.col4);
         let matrix = na::Matrix4::from_column_slice(&matrix_vec);
-        write!(f, "Src: ({},{}+{},{})\n", self.src[0], self.src[1], self.src[2], self.src[3])?;
+        write!(
+            f,
+            "Src: ({},{}+{},{})\n",
+            self.src[0], self.src[1], self.src[2], self.src[3]
+        )?;
         write!(f, "Color: {:?}\n", self.color)?;
         write!(f, "Matrix: {}", matrix)
     }
@@ -206,6 +212,7 @@ impl Default for InstanceProperties {
             col3: [1.0, 0.0, 1.0, 0.0],
             col4: [1.0, 0.0, 0.0, 1.0],
             color: [1.0, 1.0, 1.0, 1.0],
+            layer: 0,
         }
     }
 }
@@ -224,6 +231,7 @@ impl From<DrawParam> for InstanceProperties {
             col3: mat[2],
             col4: mat[3],
             color: linear_color.into(),
+            layer: 0,
         }
     }
 }
@@ -252,7 +260,8 @@ where
         info: texture::SamplerInfo,
         factory: &mut B::Factory,
     ) -> gfx::handle::Sampler<B::Resources> {
-        let sampler = self.samplers
+        let sampler = self
+            .samplers
             .entry(info)
             .or_insert_with(|| factory.create_sampler(info));
         sampler.clone()
@@ -344,7 +353,8 @@ pub fn screenshot(ctx: &mut Context) -> GameResult<Image> {
         bind: Bind::TRANSFER_SRC | Bind::TRANSFER_DST | Bind::SHADER_RESOURCE,
         usage: gfx::memory::Usage::Data,
     };
-    let target_texture = gfx.factory
+    let target_texture = gfx
+        .factory
         .create_texture_raw(texture_info, Some(channel_type), None)?;
     let image_info = gfx::texture::ImageInfoCommon {
         xoffset: 0,
@@ -378,7 +388,8 @@ pub fn screenshot(ctx: &mut Context) -> GameResult<Image> {
         max: 0,
         swizzle: gfx::format::Swizzle::new(),
     };
-    let shader_resource = gfx.factory
+    let shader_resource = gfx
+        .factory
         .view_texture_as_shader_resource_raw(&target_texture, resource_desc)?;
     let image = Image {
         texture: shader_resource,
@@ -630,14 +641,15 @@ pub fn get_projection(context: &Context) -> Matrix4 {
 /// MVP matrix.
 ///
 /// A [`DrawParam`](struct.DrawParam.html) can be converted into an appropriate
-/// transform matrix by calling 
+/// transform matrix by calling
 /// [`DrawParam::into_matrix()`](struct.DrawParam.html#method.into_matrix).
 pub fn push_transform(context: &mut Context, transform: Option<Matrix4>) {
     let gfx = &mut context.gfx_context;
     if let Some(t) = transform {
         gfx.push_transform(t);
     } else {
-        let copy = *gfx.modelview_stack
+        let copy = *gfx
+            .modelview_stack
             .last()
             .expect("Matrix stack empty, should never happen");
         gfx.push_transform(copy);
@@ -663,7 +675,7 @@ pub fn pop_transform(context: &mut Context) {
 /// MVP matrix.
 ///
 /// A [`DrawParam`](struct.DrawParam.html) can be converted into an appropriate
-/// transform matrix by calling 
+/// transform matrix by calling
 /// [`DrawParam::into_matrix()`](struct.DrawParam.html#method.into_matrix).
 pub fn set_transform(context: &mut Context, transform: Matrix4) {
     let gfx = &mut context.gfx_context;
@@ -683,7 +695,7 @@ pub fn get_transform(context: &Context) -> Matrix4 {
 /// MVP matrix.
 ///
 /// A [`DrawParam`](struct.DrawParam.html) can be converted into an appropriate
-/// transform matrix by calling 
+/// transform matrix by calling
 /// [`DrawParam::into_matrix()`](struct.DrawParam.html#method.into_matrix).
 pub fn transform(context: &mut Context, transform: Matrix4) {
     let gfx = &mut context.gfx_context;

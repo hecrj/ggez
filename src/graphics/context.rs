@@ -52,6 +52,7 @@ where
     pub(crate) samplers: SamplerCache<B>,
 
     default_shader: ShaderId,
+    pub(crate) texture_array_shader: ShaderId,
     pub(crate) current_shader: Rc<RefCell<Option<ShaderId>>>,
     pub(crate) shaders: Vec<Box<ShaderHandle<B>>>,
 
@@ -160,10 +161,8 @@ impl GraphicsContext {
         }
 
         // GFX SETUP
-        let mut encoder: gfx::Encoder<
-            gfx_device_gl::Resources,
-            gfx_device_gl::CommandBuffer,
-        > = factory.create_command_buffer().into();
+        let mut encoder: gfx::Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> =
+            factory.create_command_buffer().into();
 
         let blend_modes = [
             BlendMode::Alpha,
@@ -175,11 +174,24 @@ impl GraphicsContext {
             BlendMode::Lighten,
             BlendMode::Darken,
         ];
+
         let (shader, draw) = create_shader(
             include_bytes!("shader/basic_150.glslv"),
             include_bytes!("shader/basic_150.glslf"),
             EmptyConst,
             "Empty",
+            &mut encoder,
+            &mut factory,
+            samples,
+            Some(&blend_modes[..]),
+            debug_id,
+        )?;
+
+        let (t_shader, t_draw) = create_shader(
+            include_bytes!("shader/basic_150.glslv"),
+            include_bytes!("shader/texture_array_150.glslf"),
+            EmptyConst,
+            "TArray",
             &mut encoder,
             &mut factory,
             samples,
@@ -216,11 +228,13 @@ impl GraphicsContext {
             debug_id,
         )?;
         let texture = white_image.texture.clone();
-        let typed_thingy = super::GlBackendSpec::raw_to_typed_shader_resource(texture);
+        let typed_thingy = super::GlBackendSpec::raw_to_typed_shader_resource(texture.clone());
+        let typed_thingy2 = super::GlBackendSpec::raw_to_typed_shader_resource(texture);
 
         let data = pipe::Data {
             vbuf: quad_vertex_buffer.clone(),
-            tex: (typed_thingy, sampler),
+            tex: (typed_thingy.clone(), sampler.clone()),
+            tex_array: (typed_thingy2, sampler),
             rect_instance_properties: rect_inst_props,
             globals: globals_buffer,
             out: screen_render_target.clone(),
@@ -267,8 +281,9 @@ impl GraphicsContext {
             samplers,
 
             default_shader: shader.shader_id(),
+            texture_array_shader: 1,
             current_shader: Rc::new(RefCell::new(None)),
-            shaders: vec![draw],
+            shaders: vec![draw, t_draw],
 
             glyph_brush,
         };
@@ -301,7 +316,8 @@ impl GraphicsContext {
     /// the matrices on the top of the respective stacks and the projection
     /// matrix.
     pub(crate) fn calculate_transform_matrix(&mut self) {
-        let modelview = self.modelview_stack
+        let modelview = self
+            .modelview_stack
             .last()
             .expect("Transform stack empty; should never happen");
         let mvp = self.projection * modelview;
@@ -328,7 +344,8 @@ impl GraphicsContext {
             !self.modelview_stack.is_empty(),
             "Tried to set a transform on an empty transform stack!"
         );
-        let last = self.modelview_stack
+        let last = self
+            .modelview_stack
             .last_mut()
             .expect("Transform stack empty; should never happen!");
         *last = t;
@@ -340,7 +357,8 @@ impl GraphicsContext {
             !self.modelview_stack.is_empty(),
             "Tried to get a transform on an empty transform stack!"
         );
-        let last = self.modelview_stack
+        let last = self
+            .modelview_stack
             .last()
             .expect("Transform stack empty; should never happen!");
         *last
@@ -441,15 +459,16 @@ impl GraphicsContext {
     /// so it may cause squirrelliness to
     /// happen with canvases or other things that touch it.
     pub(crate) fn resize_viewport(&mut self) {
-        // Basically taken from the definition of 
+        // Basically taken from the definition of
         // gfx_window_sdl::update_views()
         let dim = self.screen_render_target.get_dimensions();
         assert_eq!(dim, self.depth_view.get_dimensions());
         if let Some((cv, dv)) = gfx_window_sdl::update_views_raw(
-            &self.window, 
-            dim, 
+            &self.window,
+            dim,
             self.color_format,
-            self.depth_format) {
+            self.depth_format,
+        ) {
             self.screen_render_target = cv;
             self.depth_view = dv;
         }

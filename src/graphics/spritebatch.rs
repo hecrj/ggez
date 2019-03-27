@@ -100,7 +100,8 @@ impl SpriteBatch {
         // function to be drawn, so.
         // Though we do awkwardly have to allocate a new vector.
         assert!(draw_color.is_some());
-        let new_sprites = self.sprites
+        let new_sprites = self
+            .sprites
             .iter()
             .map(|param| {
                 // Copy old params
@@ -178,7 +179,8 @@ impl<'a> graphics::Drawable for BoundSpriteBatch<'a> {
         let draw_color = param.color.or(fg);
         self.batch.flush(ctx, self.image, draw_color)?;
         let gfx = &mut ctx.gfx_context;
-        let sampler = gfx.samplers
+        let sampler = gfx
+            .samplers
             .get_or_insert(self.image.sampler_info, gfx.factory.as_mut());
         gfx.data.vbuf = gfx.quad_vertex_buffer.clone();
 
@@ -228,7 +230,8 @@ impl graphics::Drawable for SpriteBatch {
         let draw_color = param.color.or(fg);
         self.flush(ctx, &self.image, draw_color)?;
         let gfx = &mut ctx.gfx_context;
-        let sampler = gfx.samplers
+        let sampler = gfx
+            .samplers
             .get_or_insert(self.image.sampler_info, gfx.factory.as_mut());
         gfx.data.vbuf = gfx.quad_vertex_buffer.clone();
         let typed_thingy = GlBackendSpec::raw_to_typed_shader_resource(self.image.texture.clone());
