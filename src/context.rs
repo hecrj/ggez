@@ -28,7 +28,7 @@ pub struct Context {
     /// Filesystem state
     pub filesystem: Filesystem,
     /// Graphics state
-    pub(crate) gfx_context: crate::graphics::context::GraphicsContext,
+    pub(crate) gfx_context: crate::graphics::context::Context,
     /// Timer state
     pub timer_context: timer::TimeContext,
     /// Audio context
@@ -70,15 +70,7 @@ impl Context {
         };
         let events_loop = winit::EventsLoop::new();
         let timer_context = timer::TimeContext::new();
-        let backend_spec = graphics::GlBackendSpec::from(conf.backend);
-        let graphics_context = graphics::context::GraphicsContext::new(
-            &mut fs,
-            &events_loop,
-            &conf.window_setup,
-            conf.window_mode,
-            backend_spec,
-            debug_id,
-        )?;
+        let graphics_context = graphics::context::Context::new();
         let mouse_context = mouse::MouseContext::new();
         let keyboard_context = keyboard::KeyboardContext::new();
         let gamepad_context: Box<dyn gamepad::GamepadContext> = if conf.modules.gamepad {
@@ -114,11 +106,12 @@ impl Context {
     /// for ggez's optional overriding of hidpi.  For full discussion see
     /// <https://github.com/tomaka/winit/issues/591#issuecomment-403096230>.
     pub fn process_event(&mut self, event: &winit::Event) -> winit::Event {
-        let event = self.gfx_context.hack_event_hidpi(event);
+        //let event = self.gfx_context.hack_event_hidpi(event);
+        let event = event.clone();
         match event.clone() {
             winit_event::Event::WindowEvent { event, .. } => match event {
                 winit_event::WindowEvent::Resized(_) => {
-                    self.gfx_context.resize_viewport();
+                    //self.gfx_context.resize_viewport();
                 }
                 winit_event::WindowEvent::CursorMoved {
                     position: dpi::LogicalPosition { x, y },
