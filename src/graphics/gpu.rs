@@ -1,33 +1,18 @@
-use crate::conf;
 use image;
 use wgpu;
-use winit;
 
 type BgraImage = image::ImageBuffer<image::Bgra<u8>, Vec<u8>>;
-pub(crate) type Texture = wgpu::Texture;
-pub(crate) type TextureView = wgpu::TextureView;
+pub type Texture = wgpu::Texture;
+pub type TextureView = wgpu::TextureView;
 
-pub struct Context {
-    window: winit::Window,
+pub struct Gpu {
+    pub instance: wgpu::Instance,
     pub device: wgpu::Device,
-    pub surface: wgpu::Surface,
     pub pipeline: wgpu::RenderPipeline,
-    pub swap_chain: wgpu::SwapChain,
 }
 
-impl Context {
-    pub fn new(
-        events_loop: &winit::EventsLoop,
-        window_setup: &conf::WindowSetup,
-        window_mode: conf::WindowMode,
-    ) -> Context {
-        let window_builder = winit::WindowBuilder::new()
-            .with_title(window_setup.title.clone())
-            .with_transparency(window_setup.transparent)
-            .with_resizable(window_mode.resizable);
-
-        let window = window_builder.build(events_loop).unwrap();
-
+impl Gpu {
+    pub fn new() -> Gpu {
         let instance = wgpu::Instance::new();
 
         let adapter = instance.get_adapter(&wgpu::AdapterDescriptor {
@@ -83,14 +68,72 @@ impl Context {
             sample_count: 1,
         });
 
+        Gpu {
+            instance,
+            device,
+            pipeline,
+        }
+    }
+
+    pub fn upload_image(&mut self, image: &BgraImage) -> (Texture, TextureView) {
+        let extent = wgpu::Extent3d {
+            width: image.width(),
+            height: image.height(),
+            depth: 1,
+        };
+
+        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            size: extent,
+            array_size: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsageFlags::SAMPLED | wgpu::TextureUsageFlags::TRANSFER_DST,
+        });
+
+        let texture_view = texture.create_default_view();
+
+        let temp_buf = self
+            .device
+            .create_buffer_mapped(image.len(), wgpu::BufferUsageFlags::TRANSFER_SRC)
+            .fill_from_slice(&image);
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+
+        encoder.copy_buffer_to_texture(
+            wgpu::BufferCopyView {
+                buffer: &temp_buf,
+                offset: 0,
+                row_pitch: 4 * image.width(),
+                image_height: image.height(),
+            },
+            wgpu::TextureCopyView {
+                texture: &texture,
+                level: 0,
+                slice: 0,
+                origin: wgpu::Origin3d {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+            },
+            extent,
+        );
+
+        self.device.get_queue().submit(&[encoder.finish()]);
+
+        (texture, texture_view)
+    }
+
+    pub fn new_frame_buffer(&mut self, window: &winit::Window) -> FrameBuffer {
         let size = window
             .get_inner_size()
             .unwrap()
             .to_physical(window.get_hidpi_factor());
+        let surface = self.instance.create_surface(&window);
 
-        let surface = instance.create_surface(&window);
-
-        let swap_chain = device.create_swap_chain(
+        let swap_chain = self.device.create_swap_chain(
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsageFlags::OUTPUT_ATTACHMENT,
@@ -100,30 +143,24 @@ impl Context {
             },
         );
 
-        Context {
-            window,
-            device,
-            surface,
-            pipeline,
-            swap_chain,
+        FrameBuffer {
+            swap_chain: swap_chain,
         }
     }
+}
 
-    pub(crate) fn upload_image(&mut self, image: &BgraImage) -> (Texture, TextureView) {
-        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            size: wgpu::Extent3d {
-                width: image.width(),
-                height: image.height(),
-                depth: 1,
-            },
-            array_size: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsageFlags::SAMPLED | wgpu::TextureUsageFlags::TRANSFER_DST,
-        });
+pub struct Frame<'a> {
+    frame: wgpu::SwapChainOutput<'a>,
+}
 
-        let texture_view = texture.create_default_view();
+pub struct FrameBuffer {
+    swap_chain: wgpu::SwapChain,
+}
 
-        (texture, texture_view)
+impl FrameBuffer {
+    pub fn next_frame(&mut self) -> Frame {
+        Frame {
+            frame: self.swap_chain.get_next_texture(),
+        }
     }
 }

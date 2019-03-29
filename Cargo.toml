@@ -26,11 +26,12 @@ name = "ggez"
 path = "src/lib.rs"
 
 [features]
-default = ["c_dependencies"]
+default = ["c_dependencies", "vulkan"]
 bzip2 = ["zip/bzip2"]
 mp3 = ["rodio/mp3"]
 multithread-image-decoding = ["image/hdr", "image/jpeg_rayon"]
 c_dependencies = ["bzip2", "mp3"]
+vulkan = ["wgpu/vulkan"]
 
 [dependencies]
 bitflags = "1.0"
@@ -52,6 +53,7 @@ nalgebra = {version = "0.17", features = ["mint"] }
 mint = "0.5"
 gilrs = "0.6"
 approx = "0.3"
+
 
 [dev-dependencies]
 chrono = "0.4"

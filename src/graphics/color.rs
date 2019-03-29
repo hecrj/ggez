@@ -84,6 +84,15 @@ impl Color {
         let bp = u32::from(b);
         (rp | gp | bp)
     }
+
+    pub fn to_bgra_u32(self) -> u32 {
+        let (r, g, b, a): (u8, u8, u8, u8) = self.into();
+        let bp = (u32::from(b)) << 24;
+        let gp = (u32::from(g)) << 16;
+        let rp = (u32::from(r)) << 8;
+        let ap = u32::from(a);
+        (bp | gp | rp | ap)
+    }
 }
 
 impl From<(u8, u8, u8, u8)> for Color {

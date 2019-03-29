@@ -28,7 +28,7 @@ pub struct Context {
     /// Filesystem state
     pub filesystem: Filesystem,
     /// Graphics state
-    pub(crate) gfx_context: crate::graphics::context::Context,
+    pub(crate) gpu: graphics::Gpu,
     /// Timer state
     pub timer_context: timer::TimeContext,
     /// Audio context
@@ -70,7 +70,7 @@ impl Context {
         };
         let events_loop = winit::EventsLoop::new();
         let timer_context = timer::TimeContext::new();
-        let graphics_context = graphics::context::Context::new();
+        let gpu = graphics::Gpu::new();
         let mouse_context = mouse::MouseContext::new();
         let keyboard_context = keyboard::KeyboardContext::new();
         let gamepad_context: Box<dyn gamepad::GamepadContext> = if conf.modules.gamepad {
@@ -82,7 +82,7 @@ impl Context {
         let ctx = Context {
             conf,
             filesystem: fs,
-            gfx_context: graphics_context,
+            gpu,
             continuing: true,
             timer_context,
             audio_context,

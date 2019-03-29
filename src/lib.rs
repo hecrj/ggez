@@ -73,8 +73,8 @@
 //! # }
 //! ```
 
-#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
+//#![deny(missing_docs)]
+//#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 // This is not as strong a constraint as `#![forbid(unsafe_code)]` but is good enough.
 // It means the only place we use unsafe is then in the modules noted as allowing it.
