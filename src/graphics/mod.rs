@@ -12,7 +12,6 @@ pub mod texture_array;
 pub mod window;
 
 pub use self::image::Image;
-use crate::conf;
 use crate::{Context, GameResult};
 pub use canvas::{set_canvas, Canvas};
 pub use color::Color;
@@ -22,65 +21,22 @@ pub(crate) use gpu::Gpu;
 pub use math::{Matrix4, Point2, Rect, Vector2};
 pub use mesh::Mesh;
 pub use text::Text;
+pub use window::Window;
 
-pub struct Encoder {
-    encoder: wgpu::CommandEncoder,
+pub type Frame<'a> = gpu::Frame<'a>;
+pub type Target<'a> = gpu::Target<'a>;
+pub type Painter<'a> = gpu::Painter<'a>;
+
+pub fn painter(context: &Context) -> Painter {
+    context.gpu.new_painter()
 }
 
-impl Encoder {
-    pub fn finish(self) -> wgpu::CommandBuffer {
-        self.encoder.finish()
-    }
+pub fn clear(painter: &mut Painter, target: &Target, color: &Color) {
+    painter.clear(target, color);
 }
 
-impl Encoder {
-    pub fn render_pass(&mut self, frame: &gpu::TextureView, context: &Context) -> RenderPass {
-        let mut render_pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::BLACK,
-            }],
-            depth_stencil_attachment: None,
-        });
-
-        render_pass.set_pipeline(&context.gpu.pipeline);
-
-        RenderPass { render_pass }
-    }
-}
-
-pub struct RenderPass<'a> {
-    render_pass: wgpu::RenderPass<'a>,
-}
-
-pub fn encoder(context: &mut Context) -> Encoder {
-    let encoder = context
-        .gpu
-        .device
-        .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
-
-    Encoder { encoder }
-}
-
-pub fn clear(context: &mut Context) {}
-
-pub fn present(context: &mut Context) {
-    let mut encoder_1 = encoder(context);
-    let mut encoder_2 = encoder(context);
-
-    context
-        .gpu
-        .device
-        .get_queue()
-        .submit(&[encoder_1.finish(), encoder_2.finish()]);
-
-    use std::{thread, time};
-
-    let second = time::Duration::from_millis(16);
-
-    thread::sleep(second);
+pub fn submit(context: &mut Context, commands: &[gpu::Commands]) {
+    context.gpu.submit(commands);
 }
 
 pub enum FilterMode {

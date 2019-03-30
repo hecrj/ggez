@@ -61,14 +61,13 @@ impl fmt::Debug for Context {
 impl Context {
     /// Tries to create a new Context using settings from the given [`Conf`](../conf/struct.Conf.html) object.
     /// Usually called by [`ContextBuilder::build()`](struct.ContextBuilder.html#method.build).
-    fn from_conf(conf: conf::Conf, mut fs: Filesystem) -> GameResult<(Context, winit::EventsLoop)> {
+    fn from_conf(conf: conf::Conf, mut fs: Filesystem) -> GameResult<Context> {
         let debug_id = DebugId::new();
         let audio_context: Box<dyn audio::AudioContext> = if conf.modules.audio {
             Box::new(audio::RodioAudioContext::new()?)
         } else {
             Box::new(audio::NullAudioContext::default())
         };
-        let events_loop = winit::EventsLoop::new();
         let timer_context = timer::TimeContext::new();
         let gpu = graphics::Gpu::new();
         let mouse_context = mouse::MouseContext::new();
@@ -93,7 +92,7 @@ impl Context {
             debug_id,
         };
 
-        Ok((ctx, events_loop))
+        Ok(ctx)
     }
 
     /// Feeds an `Event` into the `Context` so it can update any internal
@@ -238,7 +237,7 @@ impl ContextBuilder {
     }
 
     /// Build the `Context`.
-    pub fn build(self) -> GameResult<(Context, winit::EventsLoop)> {
+    pub fn build(self) -> GameResult<Context> {
         let mut fs = Filesystem::new(self.game_id, self.author)?;
 
         for path in &self.paths {

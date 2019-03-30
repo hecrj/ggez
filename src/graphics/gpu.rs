@@ -1,9 +1,12 @@
 use image;
 use wgpu;
 
+use crate::graphics::Color;
+
 type BgraImage = image::ImageBuffer<image::Bgra<u8>, Vec<u8>>;
 pub type Texture = wgpu::Texture;
 pub type TextureView = wgpu::TextureView;
+pub type Commands = ();
 
 pub struct Gpu {
     pub instance: wgpu::Instance,
@@ -126,7 +129,7 @@ impl Gpu {
         (texture, texture_view)
     }
 
-    pub fn new_frame_buffer(&mut self, window: &winit::Window) -> FrameBuffer {
+    pub fn new_frame_buffer(&self, window: &winit::Window) -> FrameBuffer {
         let size = window
             .get_inner_size()
             .unwrap()
@@ -147,10 +150,63 @@ impl Gpu {
             swap_chain: swap_chain,
         }
     }
+
+    pub fn new_painter(&self) -> Painter {
+        let encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+
+        Painter {
+            gpu: &self,
+            encoder,
+        }
+    }
+
+    pub fn submit(&mut self, commands: &[Commands]) {}
+}
+
+pub struct Painter<'a> {
+    gpu: &'a Gpu,
+    encoder: wgpu::CommandEncoder,
+}
+
+impl<'a> Painter<'a> {
+    pub fn clear(&mut self, target: &Target, color: &Color) {
+        let _rpass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: target.view,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: wgpu::Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0,
+                },
+            }],
+            depth_stencil_attachment: None,
+        });
+    }
+
+    pub fn finish(self) -> Commands {
+        //self.encoder.finish()
+    }
 }
 
 pub struct Frame<'a> {
     frame: wgpu::SwapChainOutput<'a>,
+}
+
+impl<'a> Frame<'a> {
+    pub fn target(&self) -> Target {
+        Target {
+            view: &self.frame.view,
+        }
+    }
+}
+
+pub struct Target<'a> {
+    view: &'a TextureView,
 }
 
 pub struct FrameBuffer {
