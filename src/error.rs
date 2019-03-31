@@ -4,10 +4,6 @@ use std;
 use std::error::Error;
 use std::fmt;
 
-use gfx;
-use glutin;
-use winit;
-
 use gilrs;
 use image;
 use lyon;
@@ -36,7 +32,7 @@ pub enum GameError {
     /// Something went wrong trying to set or get window properties.
     WindowError(String),
     /// Something went wrong trying to create a window
-    WindowCreationError(glutin::CreationError),
+    //WindowCreationError(glutin::CreationError),
     /// Something went wrong trying to read from a file
     IOError(std::io::Error),
     /// Something went wrong trying to load/render a font
@@ -44,7 +40,7 @@ pub enum GameError {
     /// Something went wrong applying video settings.
     VideoError(String),
     /// Something went wrong compiling shaders
-    ShaderProgramError(gfx::shade::ProgramError),
+    //ShaderProgramError(gfx::shade::ProgramError),
     /// Something went wrong with `Gilrs`
     GamepadError(String),
     /// Something went wrong with the `lyon` shape-tesselation library.
@@ -70,9 +66,9 @@ impl fmt::Display for GameError {
 impl Error for GameError {
     fn cause(&self) -> Option<&dyn Error> {
         match *self {
-            GameError::WindowCreationError(ref e) => Some(e),
+            //GameError::WindowCreationError(ref e) => Some(e),
             GameError::IOError(ref e) => Some(e),
-            GameError::ShaderProgramError(ref e) => Some(e),
+            //GameError::ShaderProgramError(ref e) => Some(e),
             _ => None,
         }
     }
@@ -120,99 +116,6 @@ impl From<image::ImageError> for GameError {
     fn from(e: image::ImageError) -> GameError {
         let errstr = format!("Image load error: {}", e.description());
         GameError::ResourceLoadError(errstr)
-    }
-}
-
-impl From<gfx::PipelineStateError<std::string::String>> for GameError {
-    fn from(e: gfx::PipelineStateError<std::string::String>) -> GameError {
-        let errstr = format!(
-            "Error constructing pipeline!\nThis should probably not be \
-             happening; it probably means an error in a shader or \
-             something.\nError was: {:?}",
-            e
-        );
-        GameError::VideoError(errstr)
-    }
-}
-
-impl From<gfx::mapping::Error> for GameError {
-    fn from(e: gfx::mapping::Error) -> GameError {
-        let errstr = format!("Buffer mapping error: {:?}", e);
-        GameError::VideoError(errstr)
-    }
-}
-
-impl<S, D> From<gfx::CopyError<S, D>> for GameError
-where
-    S: fmt::Debug,
-    D: fmt::Debug,
-{
-    fn from(e: gfx::CopyError<S, D>) -> GameError {
-        let errstr = format!("Memory copy error: {:?}", e);
-        GameError::VideoError(errstr)
-    }
-}
-
-impl From<gfx::CombinedError> for GameError {
-    fn from(e: gfx::CombinedError) -> GameError {
-        let errstr = format!("Texture+view load error: {}", e.description());
-        GameError::VideoError(errstr)
-    }
-}
-
-impl From<gfx::texture::CreationError> for GameError {
-    fn from(e: gfx::texture::CreationError) -> GameError {
-        gfx::CombinedError::from(e).into()
-    }
-}
-
-impl From<gfx::ResourceViewError> for GameError {
-    fn from(e: gfx::ResourceViewError) -> GameError {
-        gfx::CombinedError::from(e).into()
-    }
-}
-
-impl From<gfx::TargetViewError> for GameError {
-    fn from(e: gfx::TargetViewError) -> GameError {
-        gfx::CombinedError::from(e).into()
-    }
-}
-
-impl<T> From<gfx::UpdateError<T>> for GameError
-where
-    T: fmt::Debug + fmt::Display + 'static,
-{
-    fn from(e: gfx::UpdateError<T>) -> GameError {
-        let errstr = format!("Buffer update error: {}", e);
-        GameError::VideoError(errstr)
-    }
-}
-
-impl From<gfx::shade::ProgramError> for GameError {
-    fn from(e: gfx::shade::ProgramError) -> GameError {
-        GameError::ShaderProgramError(e)
-    }
-}
-
-// TODO: improve winit/glutin error handling.
-
-impl From<winit::EventsLoopClosed> for GameError {
-    fn from(_: glutin::EventsLoopClosed) -> GameError {
-        let e = "An event loop proxy attempted to wake up an event loop that no longer exists."
-            .to_owned();
-        GameError::EventLoopError(e)
-    }
-}
-
-impl From<glutin::CreationError> for GameError {
-    fn from(s: glutin::CreationError) -> GameError {
-        GameError::WindowCreationError(s)
-    }
-}
-
-impl From<glutin::ContextError> for GameError {
-    fn from(s: glutin::ContextError) -> GameError {
-        GameError::RenderError(format!("OpenGL context error: {}", s))
     }
 }
 

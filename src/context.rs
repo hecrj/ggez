@@ -27,10 +27,10 @@ use crate::timer;
 pub struct Context {
     /// Filesystem state
     pub filesystem: Filesystem,
-    /// Graphics state
-    pub(crate) gfx_context: crate::graphics::context::GraphicsContext,
     /// Timer state
     pub timer_context: timer::TimeContext,
+    /// Graphics
+    pub gpu: graphics::Gpu,
     /// Audio context
     pub audio_context: Box<dyn audio::AudioContext>,
     /// Keyboard context
@@ -68,17 +68,18 @@ impl Context {
         } else {
             Box::new(audio::NullAudioContext::default())
         };
-        let events_loop = winit::EventsLoop::new();
         let timer_context = timer::TimeContext::new();
-        let backend_spec = graphics::GlBackendSpec::from(conf.backend);
-        let graphics_context = graphics::context::GraphicsContext::new(
-            &mut fs,
-            &events_loop,
-            &conf.window_setup,
-            conf.window_mode,
-            backend_spec,
-            debug_id,
-        )?;
+
+        let events_loop = winit::EventsLoop::new();
+
+        let window_builder = winit::WindowBuilder::new()
+            .with_title(conf.window_setup.title.clone())
+            .with_transparency(conf.window_setup.transparent)
+            .with_resizable(conf.window_mode.resizable);
+
+        let window = window_builder.build(&events_loop).unwrap();
+        let gpu = graphics::Gpu::new(window).unwrap();
+
         let mouse_context = mouse::MouseContext::new();
         let keyboard_context = keyboard::KeyboardContext::new();
         let gamepad_context: Box<dyn gamepad::GamepadContext> = if conf.modules.gamepad {
@@ -90,9 +91,9 @@ impl Context {
         let ctx = Context {
             conf,
             filesystem: fs,
-            gfx_context: graphics_context,
             continuing: true,
             timer_context,
+            gpu,
             audio_context,
             keyboard_context,
             gamepad_context,
@@ -114,11 +115,12 @@ impl Context {
     /// for ggez's optional overriding of hidpi.  For full discussion see
     /// <https://github.com/tomaka/winit/issues/591#issuecomment-403096230>.
     pub fn process_event(&mut self, event: &winit::Event) -> winit::Event {
-        let event = self.gfx_context.hack_event_hidpi(event);
+        //let event = self.gfx_context.hack_event_hidpi(event);
+        let event = event.clone();
         match event.clone() {
             winit_event::Event::WindowEvent { event, .. } => match event {
                 winit_event::WindowEvent::Resized(_) => {
-                    self.gfx_context.resize_viewport();
+                    //self.gfx_context.resize_viewport();
                 }
                 winit_event::WindowEvent::CursorMoved {
                     position: dpi::LogicalPosition { x, y },

@@ -73,8 +73,8 @@
 //! # }
 //! ```
 
-#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
+//#![deny(missing_docs)]
+//#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 // This is not as strong a constraint as `#![forbid(unsafe_code)]` but is good enough.
 // It means the only place we use unsafe is then in the modules noted as allowing it.
@@ -84,8 +84,6 @@
 
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate gfx;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -102,6 +100,7 @@ mod context;
 pub mod error;
 pub mod event;
 pub mod filesystem;
+/// Graphics
 pub mod graphics;
 pub mod input;
 pub mod timer;

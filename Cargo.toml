@@ -26,22 +26,19 @@ name = "ggez"
 path = "src/lib.rs"
 
 [features]
-default = ["c_dependencies"]
+default = ["c_dependencies", "vulkan"]
 bzip2 = ["zip/bzip2"]
 mp3 = ["rodio/mp3"]
 multithread-image-decoding = ["image/hdr", "image/jpeg_rayon"]
 c_dependencies = ["bzip2", "mp3"]
+vulkan = ["gfx-backend-vulkan"]
 
 [dependencies]
 bitflags = "1.0"
 zip = { version = "0.5", default-features = false }
 directories = "1.0.2"
-gfx = "0.18"
-gfx_core = "0.9"
-gfx_device_gl = "0.16"
-glyph_brush = "0.2"
-gfx_window_glutin = "0.29"
-glutin = "0.19"
+gfx-hal = "0.1"
+arrayvec = "0.4"
 winit = { version = "0.18" }
 image = {version = "0.21", default-features = false, features = ["gif_codec", "jpeg", "ico", "png_codec", "pnm",
 "tga", "tiff", "webp", "bmp", "dxt", ] }
@@ -57,6 +54,11 @@ nalgebra = {version = "0.17", features = ["mint"] }
 mint = "0.5"
 gilrs = "0.6"
 approx = "0.3"
+
+[dependencies.gfx-backend-vulkan]
+version = "0.1"
+optional = true
+
 
 [dev-dependencies]
 chrono = "0.4"
