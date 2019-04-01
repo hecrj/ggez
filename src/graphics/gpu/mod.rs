@@ -1,12 +1,13 @@
 #![allow(unsafe_code)]
 mod backend;
 mod context;
+pub mod memory;
 mod swapchain;
+pub mod worker;
 
 use core::mem::ManuallyDrop;
 use core::ptr::read;
-use gfx_hal::{self as hal, Device, Instance, PhysicalDevice, QueueFamily, Surface};
-use image;
+use gfx_hal::{self as hal, Device};
 use std::rc::Rc;
 use winit;
 
@@ -16,16 +17,29 @@ use swapchain::Swapchain;
 
 use crate::graphics::Color;
 
-type BgraImage = image::ImageBuffer<image::Bgra<u8>, Vec<u8>>;
-pub type Texture = ();
-pub type TextureView = ();
-
 pub struct Gpu {
     context: Rc<Context>,
     window: winit::Window,
     surface: <Backend as hal::Backend>::Surface,
     queue_group: ManuallyDrop<hal::QueueGroup<Backend, hal::Graphics>>,
     swapchain: ManuallyDrop<Swapchain>,
+    sampler: ManuallyDrop<<Backend as hal::Backend>::Sampler>,
+}
+
+impl core::ops::Drop for Gpu {
+    fn drop(&mut self) {
+        let _ = self.context.device.wait_idle();
+
+        unsafe {
+            ManuallyDrop::into_inner(read(&mut self.swapchain)).destroy(&self.context.device);
+
+            self.context
+                .device
+                .destroy_sampler(ManuallyDrop::into_inner(read(&mut self.sampler)));
+
+            ManuallyDrop::drop(&mut self.queue_group);
+        }
+    }
 }
 
 impl Gpu {
@@ -39,12 +53,23 @@ impl Gpu {
             &queue_group,
         )?;
 
+        let sampler = unsafe {
+            context
+                .device
+                .create_sampler(gfx_hal::image::SamplerInfo::new(
+                    gfx_hal::image::Filter::Nearest,
+                    gfx_hal::image::WrapMode::Tile,
+                ))
+                .map_err(|_| "Couldn't create the sampler!")?
+        };
+
         Ok(Gpu {
             context: Rc::new(context),
             window,
             surface,
             queue_group: ManuallyDrop::new(queue_group),
             swapchain: ManuallyDrop::new(swapchain),
+            sampler: ManuallyDrop::new(sampler),
         })
     }
 
@@ -78,22 +103,6 @@ impl Gpu {
                     .unwrap(),
                 );
             }
-        }
-    }
-
-    pub fn upload_image(&mut self, image: &BgraImage) -> (Texture, TextureView) {
-        ((), ())
-    }
-}
-
-impl core::ops::Drop for Gpu {
-    fn drop(&mut self) {
-        let _ = self.context.device.wait_idle();
-
-        unsafe {
-            ManuallyDrop::into_inner(read(&mut self.swapchain)).destroy(&self.context.device);
-
-            ManuallyDrop::drop(&mut self.queue_group);
         }
     }
 }

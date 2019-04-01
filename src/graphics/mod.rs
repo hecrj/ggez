@@ -2,7 +2,7 @@ pub mod canvas;
 mod color;
 mod drawparam;
 pub mod font;
-pub mod gpu;
+mod gpu;
 pub mod image;
 mod math;
 pub mod mesh;
