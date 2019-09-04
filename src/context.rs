@@ -138,9 +138,12 @@ impl Context {
                     position: logical_position,
                     ..
                 } => {
+                    let window = &self.gfx_context.window;
+                    let dpi = window.get_hidpi_factor();
+
                     self.mouse_context.set_last_position(Point2::new(
-                        logical_position.x as f32,
-                        logical_position.y as f32,
+                        (logical_position.x * dpi) as f32,
+                        (logical_position.y * dpi) as f32,
                     ));
                 }
                 winit_event::WindowEvent::MouseInput { button, state, .. } => {

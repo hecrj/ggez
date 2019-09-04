@@ -105,10 +105,14 @@ where
 {
     let mintpoint = point.into();
     ctx.mouse_context.last_position = Point2::from(mintpoint);
+
+    let window = &ctx.gfx_context.window;
+    let dpi = window.get_hidpi_factor();
+
     graphics::window(ctx)
         .set_cursor_position(dpi::LogicalPosition {
-            x: f64::from(mintpoint.x),
-            y: f64::from(mintpoint.y),
+            x: f64::from(mintpoint.x) / dpi,
+            y: f64::from(mintpoint.y) / dpi,
         })
         .map_err(|_| GameError::WindowError("Couldn't set mouse cursor position!".to_owned()))
 }
