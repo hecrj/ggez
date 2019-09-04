@@ -109,8 +109,13 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             .with_pixel_format(24, 8)
             .with_vsync(window_setup.vsync);
 
-        let window_size =
-            dpi::LogicalSize::from((f64::from(window_mode.width), f64::from(window_mode.height)));
+        let dpi = events_loop.get_primary_monitor().get_hidpi_factor();
+
+        let width = f64::from(window_mode.width) / dpi;
+        let height = f64::from(window_mode.height) / dpi;
+
+        let window_size = dpi::LogicalSize::from((width, height));
+
         let mut window_builder = winit::WindowBuilder::new()
             .with_title(window_setup.title.clone())
             .with_dimensions(window_size)
@@ -510,6 +515,17 @@ where
     /// Sets window mode from a WindowMode object.
     pub(crate) fn set_window_mode(&mut self, mode: WindowMode) -> GameResult {
         let window = &self.window;
+        let dpi = window.get_hidpi_factor();
+
+        let mode = WindowMode {
+            min_width: (f64::from(mode.min_width) / dpi) as f32,
+            min_height: (f64::from(mode.min_height) / dpi) as f32,
+            max_width: (f64::from(mode.max_width) / dpi) as f32,
+            max_height: (f64::from(mode.max_height) / dpi) as f32,
+            width: (f64::from(mode.width) / dpi) as f32,
+            height: (f64::from(mode.height) / dpi) as f32,
+            ..mode
+        };
 
         window.set_maximized(mode.maximized);
 

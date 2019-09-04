@@ -177,11 +177,13 @@ where
             match event {
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::Resized(logical_size) => {
-                        // let actual_size = logical_size;
+                        let window = &ctx.gfx_context.window;
+                        let dpi = window.get_hidpi_factor();
+
                         state.resize_event(
                             ctx,
-                            logical_size.width as f32,
-                            logical_size.height as f32,
+                            (logical_size.width * dpi) as f32,
+                            (logical_size.height * dpi) as f32,
                         );
                     }
                     WindowEvent::CloseRequested => {

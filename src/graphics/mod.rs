@@ -884,9 +884,12 @@ pub fn window(context: &Context) -> &glutin::Window {
 /// Returns zeros if the window doesn't exist.
 pub fn size(context: &Context) -> (f32, f32) {
     let gfx = &context.gfx_context;
+    let dpi = gfx.window.get_hidpi_factor();
+
     gfx.window
         .get_outer_size()
-        .map(|logical_size| (logical_size.width as f32, logical_size.height as f32))
+        .map(|logical_size| logical_size.to_physical(dpi))
+        .map(|physical_size| (physical_size.width as f32, physical_size.height as f32))
         .unwrap_or((0.0, 0.0))
 }
 
@@ -894,9 +897,11 @@ pub fn size(context: &Context) -> (f32, f32) {
 /// Returns zeros if window doesn't exist.
 pub fn drawable_size(context: &Context) -> (f32, f32) {
     let gfx = &context.gfx_context;
+    let dpi = gfx.window.get_hidpi_factor();
     gfx.window
         .get_inner_size()
-        .map(|logical_size| (logical_size.width as f32, logical_size.height as f32))
+        .map(|logical_size| logical_size.to_physical(dpi))
+        .map(|physical_size| (physical_size.width as f32, physical_size.height as f32))
         .unwrap_or((0.0, 0.0))
 }
 
